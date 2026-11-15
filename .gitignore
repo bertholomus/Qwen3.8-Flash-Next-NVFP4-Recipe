@@ -1,0 +1,6 @@
+run/
+scripts/local.sh
+__pycache__/
+*.pyc
+data/
+dist/

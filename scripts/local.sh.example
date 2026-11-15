@@ -1,0 +1,12 @@
+# scripts/local.sh — your local overrides. Sourced by scripts/config.sh.
+# Copy this file: cp scripts/local.sh.example scripts/local.sh  (scripts/local.sh is gitignored)
+# Values here beat .env; exported environment variables beat this file.
+# Examples (uncomment to use):
+# MODE=single          # agents (default) | single | full4 (EXPERIMENTAL)
+# PORT=8080
+# HOST=127.0.0.1       # 0.0.0.0 exposes the API on the network
+# MODEL_DIR=$HOME/models/Qwen3.8-Flash-Next-NVFP4-GPTQ
+# TF_VERSION=1.2.9
+# TF_SHA256=d17ba88f98d6e8b63141ed931c75db4561ed4ce7ba4ca7fbf8e28d98bbc27187
+# THINKING=off         # off (default) | on
+# NAME=qwen3.8-flash-next-nvfp4

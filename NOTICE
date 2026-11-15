@@ -1,0 +1,14 @@
+Qwen3.8-Flash-Next NVFP4 recipe for TensorFold
+Copyright 2026 BertholomusAI (Albert Lee, github.com/bertholomus)
+
+This repository (scripts, documentation and tools) is licensed under the Apache License 2.0
+(see LICENSE).
+
+The model weights this recipe serves are NOT part of this repository and are NOT licensed
+under Apache-2.0: they are a quantization of Qwen/Qwen3.8-Flash-Next, copyright Qwen,
+distributed under the Qwen Community License 1.0 from the weights repository.
+
+TensorFold is not included in or redistributed by this repository: start.sh downloads the
+stock TensorFold release binary from github.com/ashhart/TensorFold at run time. TensorFold
+is copyright its contributors, Apache License 2.0. This project is not affiliated with or
+endorsed by Qwen or TensorFold.
