@@ -13,7 +13,7 @@ sha256-checked by `start.sh`. No fork, no patches. Not affiliated with or endors
 
 - One **RTX PRO 6000 Blackwell, 96 GB** (compute capability `sm_120`). This is the only configuration measured.
 - Linux x86_64, GPU driver for **CUDA 13 or newer**.
-- ~115 GB free disk (weights 109.1 GB, engine ~60 MB, caches).
+- ~125 GB free disk (download 115.6 GB / 107.7 GiB, of which the engine loads 109.1 GB; engine ~60 MB; caches).
 - `bash` 4+, `python3`, `curl`, `tar`, and the HF CLI for the weight download: `pip install -U "huggingface_hub[cli]"`.
 
 ## Quick start
