@@ -35,7 +35,7 @@ Then the API is `http://127.0.0.1:8080/v1`, model name `qwen3.8-flash-next-nvfp4
 | check | command | expected |
 |---|---|---|
 | GPU | `nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv,noheader` | one RTX PRO 6000, compute cap 12.0 (sm_120), ~95 GiB, driver 580+ (CUDA 13) |
-| disk | `df -h "$HOME"` | ≥ 125 G free where the weights will go (download is 115.6 GB / 107.7 GiB, plus caches) |
+| disk | `df -h "$HOME"` | ≥ 120 G free where the weights will go (download is 112.8 GB / 105.0 GiB, plus caches) |
 | tools | `command -v bash curl tar sha256sum python3 git` | all found; `bash --version` 4 or newer |
 | HF CLI | `hf version` | found, else `pip install -U "huggingface_hub[cli]"` |
 
@@ -51,7 +51,7 @@ Precedence, lowest to highest: `scripts/config.sh` defaults → `.env` (parsed a
 | `MODE` | `agents` | `single` / `agents` / `full4` | `agents`: `--parallel 8 --context 32768`, prompt cache on — most concurrency, 32K tokens per stream; the measured multi-agent rows are this mode. `single`: `--parallel 1 --context 262144` — the whole window on one stream. `full4` (EXPERIMENTAL): `--parallel 4 --context 262144` with `TF_FLASHNEXT_KV_PAGES=256` and the prompt cache off — four streams share one KV page pool, so each can reach the full window while the others are shorter; some requests wait for pages; only needle-finding is measured here (4/4 in 51–185 s), not throughput. |
 | `PORT` | `8080` | any free port | change only when taken |
 | `HOST` | `127.0.0.1` | loopback, or `0.0.0.0` | `0.0.0.0` puts the API on the network — only if the person asks; the Qwen licence has terms about hosting for others |
-| `MODEL_DIR` | `$HOME/models/Qwen3.8-Flash-Next-NVFP4-GPTQ` | any absolute path | where the ~116 GB of weights land; `start.sh` runs `hf download` when it is empty |
+| `MODEL_DIR` | `$HOME/models/Qwen3.8-Flash-Next-NVFP4-GPTQ` | any absolute path | where the ~113 GB of weights land; `start.sh` runs `hf download` when it is empty |
 | `TF_VERSION` | `1.2.9` | a released version | pinned engine release; change only together with `TF_SHA256` |
 | `TF_SHA256` | `d17ba88f98d6e8b63141ed931c75db4561ed4ce7ba4ca7fbf8e28d98bbc27187` | 64 hex chars | sha256 of the release tarball; `start.sh` refuses a mismatch |
 | `THINKING` | `off` | `off` / `on` | `off` starts with `--no-thinking` (the measured rows are thinking-off); `on` keeps the chat template's default |
@@ -62,7 +62,7 @@ Precedence, lowest to highest: `scripts/config.sh` defaults → `.env` (parsed a
 1. Preflight — every section 1 check green. Check: show the outputs.
 2. `DRY_RUN=1 ./start.sh`. Check: it prints every knob with its source layer, the tarball URL, the sha256 check and
    the exact serve command, ends with "nothing above was executed", and exits 0.
-3. `./start.sh`. Check: lines `engine: …` and `weights: …` (a first run downloads ~116 GB), then
+3. `./start.sh`. Check: lines `engine: …` and `weights: …` (a first run downloads ~113 GB), then
    `ready: http://127.0.0.1:8080/v1 (model: qwen3.8-flash-next-nvfp4)`.
 4. `curl -fsS http://127.0.0.1:8080/v1/models`. Check: JSON listing `qwen3.8-flash-next-nvfp4`.
 5. `bash scripts/smoke.sh`. Check: three `PASS` lines, then `ALL SMOKE CHECKS PASSED`, exit code 0.

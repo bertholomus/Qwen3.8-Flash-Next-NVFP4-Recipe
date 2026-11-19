@@ -1,9 +1,11 @@
-# Qwen3.8-Flash-Next NVFP4 (GPTQ experts) — TensorFold recipe for one RTX PRO 6000
+# Qwen3.8-Flash-Next NVFP4 (GPTQ experts) — TensorFold recipe for one RTX PRO 6000 — v1.1
 
 > Install https://github.com/bertholomus/Qwen3.8-Flash-Next-NVFP4-Recipe on my RTX PRO 6000. Follow its AGENTS.md exactly.
 
 **Weights:** [bertholomus/Qwen3.8-Flash-Next-NVFP4-GPTQ](https://huggingface.co/bertholomus/Qwen3.8-Flash-Next-NVFP4-GPTQ)
-— GPTQ-calibrated NVFP4 routed experts (ModelOpt `MIXED_PRECISION` layout), BF16 dense parts, n-gram table as NVFP4 rows.
+— GPTQ-calibrated NVFP4 routed experts (ModelOpt `MIXED_PRECISION` layout), MXFP8 dense projections and shared experts
+(v1.1), n-gram table as NVFP4 rows. v1.0 (BF16 dense) stays on the weights repo's tag `v1.0` / branch `bf16-dense`:
+`hf download bertholomus/Qwen3.8-Flash-Next-NVFP4-GPTQ --revision bf16-dense --local-dir <dir>`.
 **Base model:** [Qwen/Qwen3.8-Flash-Next](https://huggingface.co/Qwen/Qwen3.8-Flash-Next) @ `812d96e10a0dd82b69d749e68693698cf6c36daa`.
 **Licence:** the weights are © Qwen under the Qwen Community License 1.0 (see [Licence](#licence)).
 **Engine:** stock [TensorFold](https://github.com/ashhart/TensorFold) **1.2.9** release binary (Apache-2.0), downloaded and
@@ -13,7 +15,7 @@ sha256-checked by `start.sh`. No fork, no patches. Not affiliated with or endors
 
 - One **RTX PRO 6000 Blackwell, 96 GB** (compute capability `sm_120`). This is the only configuration measured.
 - Linux x86_64, GPU driver for **CUDA 13 or newer**.
-- ~125 GB free disk (download 115.6 GB / 107.7 GiB, of which the engine loads 109.1 GB; engine ~60 MB; caches).
+- ~120 GB free disk (download 112.8 GB / 105.0 GiB, of which the engine loads 106.3 GB; engine ~60 MB; caches).
 - `bash` 4+, `python3`, `curl`, `tar`, and the HF CLI for the weight download: `pip install -U "huggingface_hub[cli]"`.
 
 ## Quick start
@@ -61,8 +63,8 @@ TensorFold 1.2.9 release (`tensorfold-1.2.9-linux-x86_64.tar.gz`, sha256 `d17ba8
 
 | row | result |
 |---|---|
-| decode, one stream (768 new tokens) | **152 tok/s** |
-| prefill, 32,797-token prompt, cold | **6,702 tok/s** |
+| decode, one stream (768 new tokens) | **159 tok/s** (v1.0: 152) |
+| prefill, 32,797-token prompt, cold | **6,076 tok/s** (v1.0: 6,702) |
 | context | **262,144** tokens |
 | needle at 130K and at 250K tokens | **found / found** |
 | greedy output repeats exactly | yes |
@@ -75,27 +77,30 @@ TensorFold 1.2.9 release (`tensorfold-1.2.9-linux-x86_64.tar.gz`, sha256 `d17ba8
 
 | agents | total tok/s | per agent | first token p50 |
 |---|---:|---:|---:|
-| 1 | 114 | 161 | 0.11 s |
-| 4 | 315 | 92 | 0.12 s |
-| 8 | **416** | 61 | 0.14 s |
-| 16 (8 wait in line) | 370 | 50 | 5.6 s |
+| 1 | 120 | 169 | 0.11 s |
+| 4 | 320 | 94 | 0.14 s |
+| 8 | **445** | 62 | 0.14 s |
+| 16 (8 wait in line) | 405 | 56 | 4.8 s |
 
 ### Four agents at the full window (experimental)
 
 `TF_FLASHNEXT_KV_PAGES=256 --parallel 4 --context 262144`: 4 agents each send a different ~241K-token document at the
-same time. **4 / 4 needles found**, in 51–185 s. The streams share one page pool, so some requests wait for pages.
-The prompt cache is off in this mode.
+same time. **4 / 4 needles found**, in 54–194 s. With v1.1 the page pool is 1,410 pages (v1.0: 1,048), about 361K
+tokens shared by the 3 extra streams. Some requests still wait for pages. The prompt cache is off in this mode.
+
+An fp8 KV cache for Flash Next (about 2.3x more pooled context; 4 x 262,144 with no waiting in our tests) is proposed
+to TensorFold. This recipe adds it when it ships in a TensorFold release.
 
 ## Quality
 
 KL divergence against the BF16 model, teacher-forced, per token, KL(BF16 ‖ quant), held-out prose and code.
 The n-gram table's error is included. Harness: [tools/q38fn_kld.py](tools/q38fn_kld.py).
 
-| check | this quant | plain round-to-nearest NVFP4 (same layout) |
-|---|---|---|
-| mean KL | **0.083** | 0.107 |
-| top-1 token agreement | **89.3%** | 88.8% |
-| perplexity (BF16 = 6.19) | **6.22** | n/a |
+| check | v1.1 (MXFP8 dense) | v1.0 (BF16 dense) | plain round-to-nearest NVFP4 (same layout) |
+|---|---|---|---|
+| mean KL | **0.096** | 0.083 | 0.107 |
+| top-1 token agreement | **88.3%** | 89.3% | 88.8% |
+| perplexity (BF16 = 6.19) | **6.20** | 6.22 | n/a |
 
 Calibration: WikiText-2 train articles and Python source, with zero documents shared with the evaluation set.
 
@@ -108,7 +113,9 @@ Calibration: WikiText-2 train articles and Python source, with zero documents sh
    (WikiText-2 train + Python source; zero overlap with the evaluation set). Dense parts stay BF16.
 4. Assembled the final pack: everything except the expert weight/scale tensors is byte-identical to the
    round-to-nearest pack (shard names, index, config).
-5. Quality gate (KLD harness above), full-window and concurrency checks.
+5. v1.1: converted the BF16 dense projections and shared experts to MXFP8 (FP8 E4M3, UE8M0 scale per 32) from the
+   BF16 source with [tools/build_f2.py](tools/build_f2.py); every other tensor byte-identical to the v1.0 pack.
+6. Quality gate (KLD harness above), full-window and concurrency checks.
 
 Inputs, commands and runtime: [tools/README.md](tools/README.md). The builders ship in [tools/](tools/);
 the calibration text (WikiText-2, exllamav3 source) is not redistributed.
